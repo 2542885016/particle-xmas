@@ -22,9 +22,13 @@ export function createStars() {
 
     for (let i = 0; i < layer.count; i++) {
       //乘数增大 改变距离 避免过大的像素点
-      positions[i * 3] = (Math.random() - 0.5) * 400; //x
-      positions[i * 3 + 1] = (Math.random() - 0.5) * 400; //y
-      positions[i * 3 + 2] = (Math.random() - 0.5) * 400; //z
+      const r = 300 * Math.cbrt(Math.random());
+      const theta = Math.random() * Math.PI * 2;
+      const phi = Math.acos(2 * Math.random() - 1);
+
+      positions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+      positions[i * 3 + 1] = r * Math.cos(phi);
+      positions[i * 3 + 2] = r * Math.sin(phi) * Math.sin(theta);
     }
     geo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
 

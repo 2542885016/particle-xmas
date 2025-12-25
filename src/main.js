@@ -5,12 +5,13 @@ import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer
 import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
 import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
 
-import { createTreeParticles } from "./treeShader.js";
+import { createTreeParticles } from "./tree.js";
 import { createStars } from "./starField.js";
 import { createHeartParticle } from "./heartShader.js";
 import { createSnows } from "./snowFlow.js";
 import { createGroundRing } from "./groundRing.js";
-import { contain } from "three/src/extras/TextureUtils.js";
+import { createUIText } from "./text.js";
+
 
 const ALLOWED_HOSTS = [".github.io", "localhost", "127.0.0.1"];
 
@@ -39,6 +40,7 @@ if (!ALLOWED_HOSTS.includes(window.location.hostname)) {
     1000
   );
   camera.position.set(5, 13, 17);
+  camera.layers.enable(1);
 
   //
   const controls = new OrbitControls(camera, renderer.domElement);
@@ -59,11 +61,17 @@ if (!ALLOWED_HOSTS.includes(window.location.hostname)) {
   //
   const bloomPass = new UnrealBloomPass(
     new THREE.Vector2(window.innerWidth, window.innerHeight),
-    1.6,
-    0.4,
-    0.85
+    2.2,
+    0.6,
+    0.65
   );
+  //强度 半径 阈值
+  bloomPass.strength = 1.5;
+  bloomPass.radius = 1.0;
+  bloomPass.threshold = 0;
+  bloomPass.renderToScreen = true;
   composer.addPass(bloomPass);
+
 
   //
   const ambient = new THREE.AmbientLight(0xffffff, 0.2);
@@ -76,7 +84,9 @@ if (!ALLOWED_HOSTS.includes(window.location.hostname)) {
   //!!
   const treeParticles = createTreeParticles();
   console.log(treeParticles);
-  scene.add(treeParticles);
+  scene.add(treeParticles.points);
+  treeParticles.points.position.y -= 2;
+  treeParticles.points.position.z -= 1;
 
   const stars = createStars();
   console.log(stars);
@@ -85,57 +95,56 @@ if (!ALLOWED_HOSTS.includes(window.location.hostname)) {
   const heart = createHeartParticle();
   console.log(heart);
   scene.add(heart);
+  heart.position.x += 0.3;
 
   const snow = createSnows();
   console.log(snow);
   scene.add(snow);
 
+  
+  const text = createUIText();
+  console.log(text);
+  if(text) scene.add(text);
+  
+
   const groundRing = createGroundRing();
-  groundRing.tick = function(t) {
+  groundRing.tick = function (t) {
     this.rotation.y += 0.00015 + Math.sin(t * 0.0003) * 0.0005;
     // 你甚至可以做更多东西
     // this.position.y = Math.sin(t * 0.002) * 0.2;
-  }
-
+  };
 
   console.log(groundRing);
   scene.add(groundRing);
 
-  //
   const clock = new THREE.Clock();
-  function animate() {
-    //snow
-    const delta = clock.getDelta();
 
-    //star
+function animate() {
+    requestAnimationFrame(animate);
+
+    const delta = clock.getDelta(); // 每帧时间间隔
     const t = clock.getElapsedTime();
 
-    heart.material.uniforms.uTime.value = t;
-
-    // ⭐ 星空层缓慢旋转（使用 layer depth）
+    // ⭐ 星空旋转（不依赖 delta，可以保持慢速分层）
     stars.children.forEach((layer, idx) => {
       layer.rotation.y += 0.0005 * (idx + 1);
     });
 
-    //
+    // 使用 delta 保证旋转稳定
     snow.tick(delta);
+    treeParticles.tick(delta);
+    heart.tick(delta);
 
-    //
     stars.position.copy(camera.position);
     stars.rotation.set(0, 0, 0);
 
-    //renderer.render(scene, camera);
-
-    //
-   if(groundRing.tick) groundRing.tick(t);
-  
+    if (groundRing.tick) groundRing.tick(t);
 
     composer.render();
     controls.update();
+}
 
-    requestAnimationFrame(animate);
-  }
-  animate();
+animate();
 
   window.addEventListener("resize", () => {
     camera.aspect = window.innerWidth / window.innerHeight;
@@ -144,3 +153,5 @@ if (!ALLOWED_HOSTS.includes(window.location.hostname)) {
     composer.setSize(window.innerWidth, window.innerHeight);
   });
 }
+
+
